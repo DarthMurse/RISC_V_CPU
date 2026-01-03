@@ -10,7 +10,35 @@ module debouncer #(
   input [WIDTH-1:0] glitchy_signal,
   output [WIDTH-1:0] debounced_signal
 );
+  reg [WRAPPING_CNT_WIDTH-1:0] sample_counters[WIDTH-1:0];
+  reg [SAT_CNT_WIDTH-1:0] pulse_counters[WIDTH-1:0];
+  reg [WIDTH-1:0] debounced_reg;
 
-  // TODO: Your code
+  genvar i;
+  generate
+    for (i = 0; i < WIDTH; i = i + 1) begin
+      always @(posedge clk) begin
+        // Sample counter logic
+        if (sample_counters[i] < SAMPLE_CNT_MAX)
+          sample_counters[i] <= sample_counters[i] + 1;
+        else begin
+          sample_counters[i] <= 0;
+          if (glitchy_signal[i]) begin
+            if (pulse_counters[i] < PULSE_CNT_MAX)
+              pulse_counters[i] <= pulse_counters[i] + 1;
+            else begin
+              pulse_counters[i] <= PULSE_CNT_MAX;
+              debounced_reg[i] <= 1'b1;
+            end
+          end else begin
+            pulse_counters[i] <= 0;
+            debounced_reg[i] <= 1'b0;
+          end
+        end
+      end
+    end
+  endgenerate
+
+  assign debounced_signal = debounced_reg;
 
 endmodule
